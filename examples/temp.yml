@@ -1,0 +1,10 @@
+probes:
+  ~/snaps/28-000004bdad4c.csv:
+    label: Pond
+  ~/snaps/28-000004e01360.csv:
+    label: Ambient - Bayswater, Perth
+output:
+  width: 20
+  height: 10
+  smoothing: 5
+  filename: ~/snaps/temp.png
