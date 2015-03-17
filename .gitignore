@@ -3,3 +3,4 @@
 *.egg-info/
 tmp*/
 *.mp4
+.DS_Store
