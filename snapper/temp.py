@@ -33,8 +33,13 @@ def render(config, output_file):
         with open(os.path.expanduser(probe)) as fd:
             r = csv.reader(fd)
             for row in r:
-                dates.append(datetime.datetime.fromtimestamp(float(row[0])))
-                temps.append(float(row[1]))
+                if len(row) == 2:
+                    try:
+                        dates.append(datetime.datetime.fromtimestamp(float(row[0])))
+                        temps.append(float(row[1]))
+                    except:
+                        print(row)
+                        raise
         n = output_config['smoothing']
         assert(n % 2 == 1)
         assert(n > 0)
