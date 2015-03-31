@@ -1,6 +1,6 @@
 #!/bin/bash
 
-working="tmp$$"
+working="/Volumes/Frogpond/tmp$$"
 mkdir "$working" || exit 1
 
 echo "linking in images: $working"
@@ -11,9 +11,7 @@ for file in `echo "$1"/*jpg | sort`; do
 done
 
 echo "rendering with ffpmeg, frame rate $2"
-outf="`basename "$1"`.mp4"
-echo $outf
-ffmpeg -f image2 -r "$2" -i "$working/%d.jpg" -r "$2" -vcodec libx264 "$outf"
+ffmpeg -f image2 -r "$2" -i "$working/%d.jpg" -r "$2" -vcodec libx264 "$3"
 
 rm -rf "$working"
 
