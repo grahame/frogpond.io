@@ -15,7 +15,7 @@ dirs() {
 for i in $( dirs ); do
     b="`basename $i`"
     movie=$base"daily/$b".mp4
-    tmpmovie="$movie".tmp
+    tmpmovie=$base"daily/$b-tmp".mp4
     if [ ! -f "$movie" ]; then
         echo "rendering: $i"
         ./render.sh "$i" 24 "$tmpmovie" && mv "$tmpmovie" "$movie"

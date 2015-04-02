@@ -15,7 +15,7 @@ while true; do
         for f in *.jpg; do
            echo "$dn/$f"
         done
-    done) | ssh pi@frogpond2.local '~/code/frogpond.io/remove-files.sh'
+    done) | ssh pi@frogpond2.local '~/code/frogpond.io/scripts/remove-files.sh'
     echo "sleeping"
     sleep 120
 done
