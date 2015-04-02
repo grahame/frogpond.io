@@ -2,7 +2,7 @@ import argparse
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from matplotlib.dates import HourLocator, MinuteLocator, DateFormatter
+from matplotlib.dates import DayLocator, HourLocator, MinuteLocator, DateFormatter
 import itertools
 import datetime
 import yaml
@@ -16,8 +16,10 @@ def render(config, output_file):
     from pylab import rcParams
     rcParams['figure.figsize'] = output_config['width'], output_config['height']
 
-    hours = HourLocator()   # every year
-    hoursFmt = DateFormatter('%H:%M')
+    days = DayLocator()
+    dayFmt = DateFormatter('%d/%m')
+    #hours = HourLocator()   # every year
+    #hoursFmt = DateFormatter('%H:%M')
 
     fig, ax = plt.subplots()
 
@@ -46,8 +48,8 @@ def render(config, output_file):
         ax.plot_date(dates[n/2:-n/2], movingaverage(temps, n)[n/2:-n/2], '-', label=label)
 
     # format the ticks
-    ax.xaxis.set_major_locator(hours)
-    ax.xaxis.set_major_formatter(hoursFmt)
+    ax.xaxis.set_major_locator(days)
+    ax.xaxis.set_major_formatter(dayFmt)
     #ax.xaxis.set_minor_locator(minutes)
     ax.autoscale_view()
 
