@@ -1,5 +1,7 @@
 #!/bin/bash
 
+renice 19 $$
+
 base=/Volumes/Frogpond/snaps/
 
 dirs() {

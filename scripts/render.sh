@@ -3,6 +3,13 @@
 working="/Volumes/Frogpond/tmp$$"
 mkdir "$working" || exit 1
 
+echo "blatting empty files: $1"
+for file in `echo "$1"/*jpg | sort`; do
+    if [ ! -s "$file" ]; then
+        echo "rm: $file" && rm -f "$file"
+    fi
+done
+
 echo "linking in images: $working"
 i=1
 for file in `echo "$1"/*jpg | sort`; do

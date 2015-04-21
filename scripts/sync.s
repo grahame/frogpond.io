@@ -7,7 +7,7 @@ while true; do
         continue
     fi
     echo "sync from pi"
-    rsync -av --bwlimit=1500 --progress --exclude '*jpg~' pi@frogpond2.local:snaps/ /Volumes/Frogpond/snaps/ &&
+    rsync -av --progress --exclude '*jpg~' pi@frogpond2.local:snaps/ /Volumes/Frogpond/snaps/ &&
     echo "cleanup pi" &&
     (for d in /Volumes/Frogpond/snaps/2???-??-??; do
         cd "$d"
