@@ -40,16 +40,18 @@ class ThermalLogs(object):
         return vals
 
 class Timelapse(object):
-    def __init__(self, directory, city_data, interval):
+    def __init__(self, directories, city_data, interval):
         self.tz = city_data.tz
         self.date = datetime.datetime.now(tz=self.tz)
         self.sun = city_data.sun(self.date, local=True)
-        self.thermal = ThermalLogs(directory)
-        self.directory = os.path.join(
+        self.thermal = ThermalLogs(directories[0])
+        self.directories = [os.path.join(
                 directory,
-                self.date.strftime("%Y-%m-%d"))
+                self.date.strftime("%Y-%m-%d")) for directory in directories]
         self.interval = interval
-        safe_mkdir(self.directory)
+        for directory in self.directories:
+            safe_mkdir(directory)
+        self.next_dir = 0
 
     def time_today(self, tm):
         return self.date.year == tm.year and \
@@ -76,6 +78,11 @@ class Timelapse(object):
         sys.stdout.write(s)
         sys.stdout.flush()
 
+    def nextdir(self):
+        r = self.directories[self.next_dir]
+        self.next_dir = (self.next_dir + 1) % len(self.directories)
+        return r
+
     def acquire(self):
         while True:
             now = datetime.datetime.now(tz=self.tz)
@@ -84,7 +91,7 @@ class Timelapse(object):
                 return
             timestamp = time.mktime(now.timetuple())
             outf = os.path.join(
-                    self.directory,
+                    self.nextdir(),
                     "%d.jpg" % (timestamp))
             args = ['raspistill', '-vf', '-hf', '-o', outf]
             mode = self.getmode(now)
@@ -99,13 +106,14 @@ class Timelapse(object):
                 time.sleep(sleep_time)
 
 
-def go(city, directory, interval):
-    safe_mkdir(directory)
+def go(city, directories, interval):
+    for directory in directories:
+        safe_mkdir(directory)
     a = Astral()
     city_data = a[city]
     while True:
         lapse = Timelapse(
-                directory,
+                directories,
                 city_data,
                 interval)
         lapse.acquire()
