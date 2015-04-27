@@ -13,6 +13,13 @@ def safe_mkdir(d):
     except OSError:
         pass
 
+def least_used(directories):
+    def get_used(d):
+        a = os.statvfs(d)
+        return a.f_bsize * a.f_bfree
+    used = map(get_used, directories)
+    return sorted(zip(used, directories))[-1][1]
+
 class ThermalLogs(object):
     def __init__(self, directory):
         def outf(f):
@@ -51,7 +58,6 @@ class Timelapse(object):
         self.interval = interval
         for directory in self.directories:
             safe_mkdir(directory)
-        self.next_dir = 0
 
     def time_today(self, tm):
         return self.date.year == tm.year and \
@@ -79,9 +85,7 @@ class Timelapse(object):
         sys.stdout.flush()
 
     def nextdir(self):
-        r = self.directories[self.next_dir]
-        self.next_dir = (self.next_dir + 1) % len(self.directories)
-        return r
+        return least_used(self.directories)
 
     def acquire(self):
         while True:
@@ -90,8 +94,9 @@ class Timelapse(object):
             if not self.time_today(now):
                 return
             timestamp = time.mktime(now.timetuple())
+            todir = self.nextdir()
             outf = os.path.join(
-                    self.nextdir(),
+                    todir,
                     "%d.jpg" % (timestamp))
             args = ['raspistill', '-vf', '-hf', '-o', outf]
             mode = self.getmode(now)
@@ -100,8 +105,8 @@ class Timelapse(object):
             rv, shoot_elapsed = self.timed_call(args)
             vals, thermal_elapsed = self.timed_thermal()
             sleep_time = self.interval - shoot_elapsed - thermal_elapsed
-            self.write_flush('%s (%s, %d, s=%.1fs, t=%.1fs, %s). wait %.1fs\n' % (
-                os.path.basename(outf), mode, rv, shoot_elapsed, thermal_elapsed, vals, sleep_time))
+            self.write_flush('%s %s (%s, %d, s=%.1fs, t=%.1fs, %s). wait %.1fs\n' % (
+                todir, os.path.basename(outf), mode, rv, shoot_elapsed, thermal_elapsed, vals, sleep_time))
             if sleep_time > 0:
                 time.sleep(sleep_time)
 
