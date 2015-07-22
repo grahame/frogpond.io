@@ -1,7 +1,7 @@
-#!/bin/bash
+#!/bin/bash -x
 
 base="/Volumes/Frogpond/snaps"
-host="frogpond2.local"
+host="frogpond"
 spleep=10
 
 set -e
@@ -21,6 +21,6 @@ while true; do
     grab "/home/pi/snaps/"
     grab "/usb/snaps/"
     rsync -av --progress pi@"$host":"~/snaps/*.csv" "$base"/
-    #echo "sleep $spleep" &&
-    #sleep $spleep
+    echo "sleep $spleep" &&
+    sleep $spleep
 done
