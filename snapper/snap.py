@@ -16,7 +16,7 @@ def safe_mkdir(d):
 def least_used(directories):
     def get_used(d):
         a = os.statvfs(d)
-        return a.f_bsize * a.f_bfree
+        return a.f_bsize * a.f_bavail
     used = map(get_used, directories)
     return sorted(zip(used, directories))[-1][1]
 
