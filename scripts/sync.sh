@@ -1,7 +1,7 @@
-#!/bin/bash
+#!/bin/bash -x
 
 base="/Volumes/Frogpond/snaps"
-host="frogpond2.local"
+host="frogpond"
 spleep=10
 
 set -e
@@ -17,6 +17,7 @@ while true; do
         sleep 60
         continue
     fi
+    ssh pi@"$host" df -h "/home/pi/snaps/" "/usb/snaps/"
     grab "/home/pi/snaps/"
     grab "/usb/snaps/"
     rsync -av --progress pi@"$host":"~/snaps/*.csv" "$base"/
