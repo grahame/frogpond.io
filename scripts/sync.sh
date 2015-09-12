@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 
 base="/Volumes/Frogpond/snaps"
 host="frogpond"
@@ -18,9 +18,10 @@ while true; do
         continue
     fi
     ssh pi@"$host" df -h "/home/pi/snaps/" "/usb/snaps/"
-    grab "/home/pi/snaps/"
-    grab "/usb/snaps/"
-    rsync -av --progress pi@"$host":"~/snaps/*.csv" "$base"/
+    grab "/home/pi/snaps/" &
+    grab "/usb/snaps/" &
+    rsync -av --progress pi@"$host":"~/snaps/*.csv" "$base"/ &
+    wait
     echo "sleep $spleep" &&
     sleep $spleep
 done
