@@ -14,8 +14,8 @@ import os
 
 class Library:
     @classmethod
-    def days(cls):
-        days = glob('/Volumes/Frogpond*/snaps/*/')
+    def days(cls, base='/Volumes/Frogpond*'):
+        days = glob(base+'/snaps/*/')
         yield from sorted(days, key=lambda x: x.split('/')[-2])
 
     @classmethod
@@ -46,17 +46,23 @@ def command_qc(args):
     # 1425513431.jpg 2592 x 1944 24bit Exif  N 3358723  Corrupt JPEG data: 32765 extraneous bytes before marker 0xd9  [WARNING]
     # 1425513446.jpg 2592 x 1944 24bit Exif  N 3340226  [OK]
     # 1425513461.jpg 2592 x 1944 24bit Exif  N 3342530  [OK]
-    for day_path in Library.days():
+    for day_path in Library.days(base=args.base):
         print()
         print(day_path)
         if Library.qcok(day_path):
+            print("done, skipping")
             continue
-        for fname in Library.images(day_path):
-            print(subprocess.call([
-                "jpeginfo", "-c", fname]))
-            #Library.quarantine(fname)
-        with open(Library.qcpath(day_path), 'w') as fd:
-            print("OK at %s" % (time.ctime()), file=fd)
+        os.chdir(day_path)
+        files = glob('*.jpg')
+        print('%d files to check.' % len(files))
+        with subprocess.Popen(["jpeginfo", "-c"] + files, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True) as proc:
+            for line in (t.strip() for t in proc.stdout):
+                sys.stderr.write('.')
+                sys.stderr.flush()
+                parts = line.split()
+                if parts[-1] != '[OK]':
+                    print(line)
+                    quarantine(os.path.join(day_path, parts[0]))
 
 def command_timelapse(args):
     arg_hash = sha1(bytes(repr(args), 'utf8')).hexdigest()
@@ -117,6 +123,7 @@ def main():
 
     parser_qc = subparsers.add_parser('qc')
     parser_qc.set_defaults(func=command_qc)
+    parser_qc.add_argument('base', type=str)
 
     parser_timelapse = subparsers.add_parser('timelapse')
     parser_timelapse.set_defaults(func=command_timelapse)
