@@ -68,15 +68,11 @@ def command_qc(args):
 
 
 def command_timelapse(args):
-    arg_hash = sha1(bytes(repr(args), 'utf8')).hexdigest()
-    tmpdir = './tmp-%s' % (arg_hash)
-    os.mkdir(tmpdir)
     start_date = datetime.datetime.strptime(args.start_date, "%Y-%m-%d")
     end_date = datetime.datetime.strptime(args.end_date, "%Y-%m-%d")
     photos = []
     photo_dir = {}
     for day_path in Library.days():
-        print("scan: %s" % day_path)
         try:
             day = datetime.datetime.strptime(day_path.split('/')[-2], "%Y-%m-%d")
         except ValueError:
@@ -85,6 +81,7 @@ def command_timelapse(args):
             continue
         if day > end_date:
             continue
+        print("scan: %s" % day_path)
         for fname in Library.images(day_path):
             tm = int(os.path.basename(fname).split('.')[0])
             photos.append(tm)
@@ -95,30 +92,48 @@ def command_timelapse(args):
     time_per_frame = (latest - earliest) / (frames - 1)
     idx = 0
     to_render = []
+    def check(fname):
+        if os.access(Library.qcpath(os.path.dirname(fname)), os.R_OK):
+            return True
+        with subprocess.Popen(["jpeginfo", "-c", fname], stdout=subprocess.PIPE, bufsize=1, universal_newlines=True) as proc:
+            lines = proc.stdout.readlines()
+            if not lines[0].strip().endswith(' [OK]'):
+                print(lines[0].strip())
+                return False
+            return True
     for frame in range(frames):
         target = earliest + time_per_frame * frame
+        def find_next(idx):
+            while True:
+                dist = abs(target - photos[idx])
+                options = list(range(max(idx-1,0), min(idx+2, len(photos))))
+                distances = [abs(target - photos[t]) for t in options]
+                closest = min(distances)
+                opt = distances.index(closest)
+                next_idx = options[opt]
+                if next_idx == idx:
+                    return idx
+                idx = next_idx
         while True:
-            dist = abs(target - photos[idx])
-            options = list(range(max(idx-1,0), min(idx+2, len(photos))))
-            distances = [abs(target - photos[t]) for t in options]
-            closest = min(distances)
-            opt = distances.index(closest)
-            next_idx = options[opt]
-            #print(idx, dist, options, distances, opt)
-            if next_idx == idx:
+            idx = find_next(idx)
+            photo = photos[idx]
+            print(frame, idx, photo)
+            photo_path = os.path.join(photo_dir[photo], '%d.jpg' % photo)
+            if check(photo_path):
                 break
-            idx = next_idx
-        print(target, idx)
-        photo = photos[idx]
-        to_render.append(os.path.join(photo_dir[photo], '%d.jpg' % photo))
+            del photos[idx]
+        to_render.append(photo_path)
     assert(len(to_render) == frames)
+    arg_hash = sha1(bytes(repr(args), 'utf8')).hexdigest()
+    tmpdir = './tmp-%s' % (arg_hash)
+    os.mkdir(tmpdir)
     for idx, frame in enumerate(to_render):
         os.symlink(frame, os.path.join(tmpdir, '%d.jpg' % idx))
     subprocess.call([
         'ffmpeg', '-f', 'image2', '-r', str(args.fps),
         '-i', tmpdir+'/%d.jpg', '-r', str(args.fps),
         '-vcodec', 'libx264', 'render-%s.mp4' % arg_hash])
-    #subprocess.call(['rm', '-rf', tmpdir])
+    subprocess.call(['rm', '-rf', tmpdir])
 
 def main():
     parser = argparse.ArgumentParser()
