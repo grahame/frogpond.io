@@ -62,7 +62,10 @@ def command_qc(args):
                 parts = line.split()
                 if parts[-1] != '[OK]':
                     print(line)
-                    quarantine(os.path.join(day_path, parts[0]))
+                    Library.quarantine(os.path.join(day_path, parts[0]))
+        with open(Library.qcpath(day_path), 'w') as fd:
+            print("OK at %s" % (time.ctime()), file=fd)
+
 
 def command_timelapse(args):
     arg_hash = sha1(bytes(repr(args), 'utf8')).hexdigest()
