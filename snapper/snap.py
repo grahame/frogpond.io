@@ -21,9 +21,10 @@ def least_used(directories):
     return sorted(zip(used, directories))[-1][1]
 
 class ThermalLogs(object):
-    def __init__(self, directory):
+    def __init__(self, directory, temp_names):
         def outf(f):
-            return os.path.join(directory, f.split('/')[-2] + '.csv')
+            nm = temp_names[f.split('/')[-2]]
+            return os.path.join(directory, nm + '.csv')
         self.probe_files = dict((outf(t), t) for t in glob.glob('/sys/bus/w1/devices/28-*/w1_slave'))
 
     def read_dev(self, dev):
@@ -47,11 +48,11 @@ class ThermalLogs(object):
         return vals
 
 class Timelapse(object):
-    def __init__(self, directories, city_data, interval):
+    def __init__(self, directories, city_data, interval, temp_names):
         self.tz = city_data.tz
         self.date = datetime.datetime.now(tz=self.tz)
         self.sun = city_data.sun(self.date, local=True)
-        self.thermal = ThermalLogs(directories[0])
+        self.thermal = ThermalLogs(directories[0], temp_names)
         self.directories = [os.path.join(
                 directory,
                 self.date.strftime("%Y-%m-%d")) for directory in directories]
