@@ -112,7 +112,7 @@ class Timelapse(object):
                 time.sleep(sleep_time)
 
 
-def go(city, directories, interval):
+def go(city, directories, interval, temp_names):
     for directory in directories:
         safe_mkdir(directory)
     a = Astral()
@@ -121,5 +121,6 @@ def go(city, directories, interval):
         lapse = Timelapse(
                 directories,
                 city_data,
-                interval)
+                interval,
+                temp_names)
         lapse.acquire()
