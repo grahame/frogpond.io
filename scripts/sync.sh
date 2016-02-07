@@ -11,6 +11,7 @@ grab() {
     (ssh pi@"$host" "~/code/frogpond.io/scripts/bundle.sh" "$1" | (cd "$base" && tar xvf -) )
 }
 
+rsync -av --progress pi@"$host":"~/snaps/*.csv" "$base"/ &
 while true; do
     if [ ! -d "$base" ]; then
         echo "frogpond not mounted, waiting..."
@@ -20,7 +21,6 @@ while true; do
     ssh pi@"$host" df -h "/home/pi/snaps/" "/usb/snaps/"
     grab "/home/pi/snaps/" &
     grab "/usb/snaps/" &
-    rsync -av --progress pi@"$host":"~/snaps/*.csv" "$base"/ &
     wait
     echo "sleep $spleep" &&
     sleep $spleep
