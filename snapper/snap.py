@@ -48,11 +48,11 @@ class ThermalLogs(object):
         return vals
 
 class Timelapse(object):
-    def __init__(self, directories, city_data, interval, temp_names):
+    def __init__(self, temp_directory, directories, city_data, interval, temp_names):
         self.tz = city_data.tz
         self.date = datetime.datetime.now(tz=self.tz)
         self.sun = city_data.sun(self.date, local=True)
-        self.thermal = ThermalLogs(directories[0], temp_names)
+        self.thermal = ThermalLogs(temp_directory, temp_names)
         self.directories = [os.path.join(
                 directory,
                 self.date.strftime("%Y-%m-%d")) for directory in directories]
@@ -112,13 +112,14 @@ class Timelapse(object):
                 time.sleep(sleep_time)
 
 
-def go(city, directories, interval, temp_names):
+def go(city, temp_directory, directories, interval, temp_names):
     for directory in directories:
         safe_mkdir(directory)
     a = Astral()
     city_data = a[city]
     while True:
         lapse = Timelapse(
+                temp_directory,
                 directories,
                 city_data,
                 interval,
