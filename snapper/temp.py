@@ -1,3 +1,5 @@
+# -*- coding: utf8 -*-
+
 import argparse
 import matplotlib
 matplotlib.use('Agg')
@@ -11,15 +13,51 @@ import csv
 import sys
 import os
 
-def render(config, output_file):
+class ProbeData(object):
+    def __init__(self):
+        # cache the temperature readings
+        self._cache = {}
+
+    def _read(self, probe_path):
+        dates = []
+        temps = []
+        with open(probe_path) as fd:
+            r = csv.reader(fd)
+            for row in r:
+                if len(row) == 2:
+                    try:
+                        date = datetime.datetime.fromtimestamp(float(row[0]))
+                        temp = float(row[1])
+                    except:
+                        print(row)
+                        raise
+                dates.append(date)
+                temps.append(temp)
+        return dates, temps
+
+    def read(self, probe_path, date_min=None):
+        if probe_path not in self._cache:
+            self._cache[probe_path] = self._read(probe_path)
+        dates, temps = self._cache[probe_path]
+        if date_min is None:
+            return dates, temps
+        d, t = [], []
+        for idx, date in enumerate(dates):
+            if date < date_min:
+                continue
+            d.append(date)
+            t.append(temps[idx])
+        return d, t
+
+def render(data, config):
     output_config = config['output']
     from pylab import rcParams
     rcParams['figure.figsize'] = output_config['width'], output_config['height']
 
     days = DayLocator()
-    dayFmt = DateFormatter('%d/%m')
-    #hours = HourLocator()   # every year
-    #hoursFmt = DateFormatter('%H:%M')
+    dayFmt = DateFormatter('')# %d/%m')
+    hours = HourLocator()   # every year
+    hoursFmt = DateFormatter('%H:%M')
 
     fig, ax = plt.subplots()
 
@@ -27,44 +65,57 @@ def render(config, output_file):
         window = numpy.ones(int(window_size))/float(window_size)
         return numpy.convolve(interval, window, 'same')
 
-    for probe in config['probes']:
+    date_min = None
+    if 'last' in config:
+        last_hrs = int(config['last'].get('hours', '0'))
+        last_days = int(config['last'].get('days', '0'))
+        date_min = datetime.datetime.now() - datetime.timedelta(days=last_days, hours=last_hrs)
+
+    longest_label = max(len(c['label']) for c in config['probes'].values())
+
+    for probe in sorted(config['probes'], key=lambda c: config['probes'][c]['label']):
         probe_config = config['probes'][probe]
-        label = probe_config['label']
-        dates = []
-        temps = []
-        with open(os.path.expanduser(probe)) as fd:
-            r = csv.reader(fd)
-            for row in r:
-                if len(row) == 2:
-                    try:
-                        dates.append(datetime.datetime.fromtimestamp(float(row[0])))
-                        temps.append(float(row[1]))
-                    except:
-                        print(row)
-                        raise
-        n = output_config['smoothing']
-        assert(n % 2 == 1)
-        assert(n > 0)
-        ax.plot_date(dates[n/2:-n/2], movingaverage(temps, n)[n/2:-n/2], '-', label=label)
+        probe_path = os.path.expanduser(probe)
+        dates, temps = data.read(probe_path, date_min)
+
+        def agg_time(f):
+            f_t = f(temps)
+            idx = temps.index(f_t)
+            return f_t, dates[idx].strftime('%H:%M:%S')
+
+        min_temp, min_temp_dt = agg_time(min)
+        max_temp, max_temp_dt = agg_time(max)
+        label = "%*s - min %2.1f$^\circ$ @ %s - max %2.1f$^\circ$ @ %s" % (longest_label, probe_config['label'], min_temp, min_temp_dt, max_temp, max_temp_dt)
+        #n = output_config['smoothing']
+        #assert(n % 2 == 1)
+        #assert(n > 0)
+        #lines = ax.plot_date(dates[n/2:-n/2], movingaverage(temps, n)[n/2:-n/2], '-', label=label)
+        lines = ax.plot_date(dates, temps, '-', label=label)
+        plt.setp(lines, linewidth=3.)
 
     # format the ticks
     ax.xaxis.set_major_locator(days)
     ax.xaxis.set_major_formatter(dayFmt)
-    #ax.xaxis.set_minor_locator(minutes)
+    ax.xaxis.set_minor_locator(hours)
+    ax.xaxis.set_minor_formatter(hoursFmt)
     ax.autoscale_view()
 
     ax.fmt_xdata = DateFormatter('%H:%M')
-    ax.grid(True)
+    ax.xaxis.grid(b=True, which='major', linestyle='-')
+    ax.xaxis.grid(b=True, which='minor', linestyle=':')
+    ax.yaxis.grid(b=True, which='major', linestyle=':')
     fig.autofmt_xdate()
-    plt.legend()
-    plt.savefig(output_file, bbox_inches='tight')
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.08),
+            ncol=1, fancybox=True, shadow=True, prop={'family': 'monospace'})
+    plt.savefig(os.path.expanduser(output_config['filename']), bbox_inches='tight')
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('config_file')
-    parser.add_argument('output_file')
+    parser.add_argument('config_file', nargs='*')
     args = parser.parse_args()
-    with open(args.config_file) as fd:
-        config = yaml.load(fd)
-    render(config, args.output_file)
+    data = ProbeData()
+    for config_file in args.config_file:
+        with open(config_file) as fd:
+                config = yaml.load(fd)
+        render(data, config)
 
