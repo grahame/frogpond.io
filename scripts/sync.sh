@@ -18,7 +18,7 @@ while true; do
         continue
     fi
     ssh pi@"$host" df -h "/home/pi/snaps/" "/usb/snaps/"
-    rsync -av --progress pi@"$host":"/temp/" "$base"/temp/ &
+    rsync -av --progress pi@"$host":"/temp/data/" "$base"/temp/ &
     grab "/home/pi/snaps/" &
     grab "/usb/snaps/" &
     wait
