@@ -30,7 +30,7 @@ class ProbeData(object):
                         temp = float(row[1])
                     except:
                         print(row)
-                        raise
+                        continue
                 dates.append(date)
                 temps.append(temp)
         return dates, temps
